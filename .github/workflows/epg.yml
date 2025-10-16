@@ -130,7 +130,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "✅ No changes to commit."
           else
-            git commit -m "📺 Automatically updated Playlist & generated JSON"
+            git commit -m "📺 Automatically updated EPG"
             for i in 1 2 3; do
               if git push https://${EPG_REPO_PAT}@github.com/${EPG_REPO_NAME}.git main; then
                 echo "🚀 Push complete!"

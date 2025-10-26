@@ -19,6 +19,7 @@ jobs:
         JioTVPlus|JIOTVPLUS_INPUT_PATH|JIOTVPLUS_OUTPUT_PATH|JIOTVPLUS_URL|15
         Zee5|ZEE5_INPUT_PATH|ZEE5_OUTPUT_PATH|ZEE5_URL|15
         SonyLIV|SONYLIV_INPUT_PATH|SONYLIV_OUTPUT_PATH|SONYLIV_URL|15
+        Hotstar|HOTSTAR_INPUT_PATH|HOTSTAR_OUTPUT_PATH|HOTSTAR_URL|15
 
     steps:
       # -------------------------
@@ -77,6 +78,10 @@ jobs:
           SONYLIV_INPUT_PATH: ${{ secrets.SONYLIV_INPUT_PATH }}
           SONYLIV_OUTPUT_PATH: ${{ secrets.SONYLIV_OUTPUT_PATH }}
           SONYLIV_URL: ${{ secrets.SONYLIV_URL }}
+
+          HOTSTAR_INPUT_PATH: ${{ secrets.HOTSTAR_INPUT_PATH }}
+          HOTSTAR_OUTPUT_PATH: ${{ secrets.HOTSTAR_OUTPUT_PATH }}
+          HOTSTAR_URL: ${{ secrets.HOTSTAR_URL }}
 
           # LIVE playlist
           LIVE_INPUT_PATH: ${{ secrets.LIVE_INPUT_PATH }}

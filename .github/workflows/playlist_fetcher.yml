@@ -16,13 +16,12 @@ jobs:
     env:
       PLAYLISTS: |
         Fancode|FANCODE_INPUT_PATH|FANCODE_OUTPUT_PATH|FANCODE_URL|15
-        Willow|WILLOW_INPUT_PATH|WILLOW_OUTPUT_PATH|WILLOW_URL|15
-        JioTVPlus|JIOTVPLUS_INPUT_PATH|JIOTVPLUS_OUTPUT_PATH|JIOTVPLUS_URL|15
-        Zee5|ZEE5_INPUT_PATH|ZEE5_OUTPUT_PATH|ZEE5_URL|15
-        SonyLIV|SONYLIV_INPUT_PATH|SONYLIV_OUTPUT_PATH|SONYLIV_URL|15
         Hotstar|HOTSTAR_INPUT_PATH|HOTSTAR_OUTPUT_PATH|HOTSTAR_URL|15
+        JioTVPlus|JIOTVPLUS_INPUT_PATH|JIOTVPLUS_OUTPUT_PATH|JIOTVPLUS_URL|15
         SkySport|SKYSPORT_INPUT_PATH|SKYSPORT_OUTPUT_PATH|SKYSPORT_URL|15
-
+        SonyLIV|SONYLIV_INPUT_PATH|SONYLIV_OUTPUT_PATH|SONYLIV_URL|15
+        Zee5|ZEE5_INPUT_PATH|ZEE5_OUTPUT_PATH|ZEE5_URL|15
+        
     steps:
       # -------------------------
       # Checkout repo
@@ -70,31 +69,26 @@ jobs:
           FANCODE_OUTPUT_PATH: ${{ secrets.FANCODE_OUTPUT_PATH }}
           FANCODE_URL: ${{ secrets.FANCODE_URL }}
 
-          WILLOW_INPUT_PATH: ${{ secrets.WILLOW_INPUT_PATH }}
-          WILLOW_OUTPUT_PATH: ${{ secrets.WILLOW_OUTPUT_PATH }}
-          WILLOW_URL: ${{ secrets.WILLOW_URL }}
+          HOTSTAR_INPUT_PATH: ${{ secrets.HOTSTAR_INPUT_PATH }}
+          HOTSTAR_OUTPUT_PATH: ${{ secrets.HOTSTAR_OUTPUT_PATH }}
+          HOTSTAR_URL: ${{ secrets.HOTSTAR_URL }}
 
           JIOTVPLUS_INPUT_PATH: ${{ secrets.JIOTVPLUS_INPUT_PATH }}
           JIOTVPLUS_OUTPUT_PATH: ${{ secrets.JIOTVPLUS_OUTPUT_PATH }}
           JIOTVPLUS_URL: ${{ secrets.JIOTVPLUS_URL }}
 
-          ZEE5_INPUT_PATH: ${{ secrets.ZEE5_INPUT_PATH }}
-          ZEE5_OUTPUT_PATH: ${{ secrets.ZEE5_OUTPUT_PATH }}
-          ZEE5_URL: ${{ secrets.ZEE5_URL }}
+          SKYSPORT_INPUT_PATH: ${{ secrets.SKYSPORT_INPUT_PATH }}
+          SKYSPORT_OUTPUT_PATH: ${{ secrets.SKYSPORT_OUTPUT_PATH }}
+          SKYSPORT_URL: ${{ secrets.SKYSPORT_URL }}
 
           SONYLIV_INPUT_PATH: ${{ secrets.SONYLIV_INPUT_PATH }}
           SONYLIV_OUTPUT_PATH: ${{ secrets.SONYLIV_OUTPUT_PATH }}
           SONYLIV_URL: ${{ secrets.SONYLIV_URL }}
 
-          HOTSTAR_INPUT_PATH: ${{ secrets.HOTSTAR_INPUT_PATH }}
-          HOTSTAR_OUTPUT_PATH: ${{ secrets.HOTSTAR_OUTPUT_PATH }}
-          HOTSTAR_URL: ${{ secrets.HOTSTAR_URL }}
+          ZEE5_INPUT_PATH: ${{ secrets.ZEE5_INPUT_PATH }}
+          ZEE5_OUTPUT_PATH: ${{ secrets.ZEE5_OUTPUT_PATH }}
+          ZEE5_URL: ${{ secrets.ZEE5_URL }}
 
-          SKYSPORT_INPUT_PATH: ${{ secrets.SKYSPORT_INPUT_PATH }}
-          SKYSPORT_OUTPUT_PATH: ${{ secrets.SKYSPORT_OUTPUT_PATH }}
-          SKYSPORT_URL: ${{ secrets.SKYSPORT_URL }}
-
-          # LIVE playlist
           LIVE_INPUT_PATH: ${{ secrets.LIVE_INPUT_PATH }}
           LIVE_OUTPUT_PATH: ${{ secrets.LIVE_OUTPUT_PATH }}
           LIVE_LOG_PATH: ${{ secrets.LIVE_LOG_PATH }}

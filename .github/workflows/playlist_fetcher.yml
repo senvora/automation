@@ -21,6 +21,7 @@ jobs:
         Zee5|ZEE5_INPUT_PATH|ZEE5_OUTPUT_PATH|ZEE5_URL|15
         SonyLIV|SONYLIV_INPUT_PATH|SONYLIV_OUTPUT_PATH|SONYLIV_URL|15
         Hotstar|HOTSTAR_INPUT_PATH|HOTSTAR_OUTPUT_PATH|HOTSTAR_URL|15
+        SkySport|SKYSPORT_INPUT_PATH|SKYSPORT_OUTPUT_PATH|SKYSPORT_URL|15
 
     steps:
       # -------------------------
@@ -88,6 +89,10 @@ jobs:
           HOTSTAR_INPUT_PATH: ${{ secrets.HOTSTAR_INPUT_PATH }}
           HOTSTAR_OUTPUT_PATH: ${{ secrets.HOTSTAR_OUTPUT_PATH }}
           HOTSTAR_URL: ${{ secrets.HOTSTAR_URL }}
+
+          SKYSPORT_INPUT_PATH: ${{ secrets.SKYSPORT_INPUT_PATH }}
+          SKYSPORT_OUTPUT_PATH: ${{ secrets.SKYSPORT_OUTPUT_PATH }}
+          SKYSPORT_URL: ${{ secrets.SKYSPORT_URL }}
 
           # LIVE playlist
           LIVE_INPUT_PATH: ${{ secrets.LIVE_INPUT_PATH }}

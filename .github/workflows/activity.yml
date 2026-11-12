@@ -1,0 +1,32 @@
+name: activity
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  TZ: Asia/Kolkata
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update activity log
+        run: |
+          echo "Last updated: $(date '+%-d %B %-I.%M %p')" >> activity.txt
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "senvora"
+          git config --global user.email "192395417+senvora@users.noreply.github.com"
+          git add activity.txt
+          git commit -m "Activity update $(date '+%-d %B %-I.%M %p')" || echo "No changes"
+          git push

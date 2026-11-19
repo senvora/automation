@@ -1,0 +1,83 @@
+name: automation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation
+  cancel-in-progress: false
+
+jobs:
+  automation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout private repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ secrets.LIVE_REPO_NAME }}
+          token: ${{ secrets.G_PAT }}
+          path: live
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: live/package-lock.json
+
+      - name: Install dependencies
+        working-directory: live
+        run: npm ci --silent
+
+      - name: Run updater pipeline
+        id: pipeline
+        working-directory: live
+        run: |
+          set -euo pipefail
+
+          node scripts/updater/index.js > /dev/null 2>&1
+          node scripts/action/merge.js > /dev/null 2>&1
+          node scripts/action/jsoncon.js > /dev/null 2>&1
+
+          if [[ -z "$(git status --porcelain playlist)" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit changes safely
+        if: steps.pipeline.outputs.changed == 'true'
+        working-directory: live
+        run: |
+          set -euo pipefail
+
+          git config user.name "senvora"
+          git config user.email "192395417+senvora@users.noreply.github.com"
+
+          git add playlist/
+          git commit -m "Automatically Updated" > /dev/null 2>&1
+
+          for i in 1 2 3; do
+            git pull --rebase origin main > /dev/null 2>&1
+
+            if git push origin HEAD:main > /dev/null 2>&1; then
+              exit 0
+            fi
+
+            sleep $((i * 2))
+          done
+
+          echo "::error::Push failed after 3 attempts"
+          exit 1
+
+      - name: Deploy JSON to Cloudflare KV
+        if: steps.pipeline.outputs.changed == 'true'
+        working-directory: live
+        env:
+          CLOUDFLARE_KV_CONFIG: ${{ secrets.CLOUDFLARE_KV_CONFIG }}
+        run: node scripts/action/deploy.js > /dev/null 2>&1

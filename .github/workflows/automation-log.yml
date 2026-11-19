@@ -1,0 +1,154 @@
+name: automation-log
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-log
+  cancel-in-progress: false
+
+jobs:
+  automation-log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 1. Checkout private repository
+      - name: Checkout private repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ secrets.LIVE_REPO_NAME }}
+          token: ${{ secrets.G_PAT }}
+          path: live
+
+      # 2. Setup Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: live/package-lock.json
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        working-directory: live
+        run: npm ci --silent
+
+      # 4. Run updater pipeline with full logs
+      - name: Run updater pipeline
+        id: pipeline
+        working-directory: live
+        run: |
+          set -euo pipefail
+
+          echo "======================================"
+          echo "       STARTING UPDATER PIPELINE"
+          echo "======================================"
+
+          echo ""
+          echo "[1/4] Running updater..."
+          node scripts/updater/index.js
+
+          echo ""
+          echo "[2/4] Running merge..."
+          node scripts/action/merge.js
+
+          echo ""
+          echo "[3/4] Running JSON conversion..."
+          node scripts/action/jsoncon.js
+
+          echo ""
+          echo "[4/4] Checking playlist changes..."
+
+          if [[ -z "$(git status --porcelain playlist)" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No playlist changes detected."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Playlist changes detected!"
+            git status --short playlist
+          fi
+
+          echo ""
+          echo "======================================"
+          echo "       PIPELINE COMPLETED"
+          echo "======================================"
+
+      # 5. Commit and push changes safely
+      - name: Commit changes safely
+        if: steps.pipeline.outputs.changed == 'true'
+        working-directory: live
+        run: |
+          set -euo pipefail
+
+          echo "======================================"
+          echo "       COMMITTING CHANGES"
+          echo "======================================"
+
+          git config user.name "senvora"
+          git config user.email "192395417+senvora@users.noreply.github.com"
+
+          git add playlist/
+
+          git commit -m "Automatically Updated"
+
+          echo ""
+          echo "Pushing changes to main..."
+
+          for i in 1 2 3; do
+            echo ""
+            echo "Push attempt $i/3"
+
+            if git pull --rebase origin main && \
+               git push origin HEAD:main; then
+              echo "Successfully pushed changes!"
+              exit 0
+            fi
+
+            echo "Push attempt $i failed."
+
+            if [[ "$i" -lt 3 ]]; then
+              echo "Retrying in $((i * 2)) seconds..."
+              sleep $((i * 2))
+            fi
+          done
+
+          echo "::error::Push failed after 3 attempts"
+          exit 1
+
+      # 6. Deploy JSON to Cloudflare KV
+      - name: Deploy JSON to Cloudflare KV
+        if: steps.pipeline.outputs.changed == 'true'
+        working-directory: live
+        env:
+          CLOUDFLARE_KV_CONFIG: ${{ secrets.CLOUDFLARE_KV_CONFIG }}
+        run: |
+          set -euo pipefail
+
+          echo "======================================"
+          echo "       CLOUDFLARE KV DEPLOYMENT"
+          echo "======================================"
+
+          node scripts/action/deploy.js
+
+          echo ""
+          echo "======================================"
+          echo "       DEPLOYMENT COMPLETED"
+          echo "======================================"
+
+      # 7. Final status
+      - name: Automation summary
+        if: always()
+        run: |
+          echo "======================================"
+          echo "          AUTOMATION SUMMARY"
+          echo "======================================"
+
+          echo "Pipeline status: ${{ steps.pipeline.outcome }}"
+          echo "Playlist changed: ${{ steps.pipeline.outputs.changed }}"
+          echo "Commit status: ${{ job.status }}"
+
+          echo "======================================"

@@ -1,0 +1,190 @@
+name: automation-log
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: automation-log
+  cancel-in-progress: false
+
+jobs:
+  automation-log:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 1. Checkout private repository
+      - name: Checkout private repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ secrets.LIVE_REPO_NAME }}
+          token: ${{ secrets.G_PAT }}
+          path: live
+
+      # 2. Setup Node.js
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: live/package-lock.json
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        working-directory: live
+        run: npm ci --silent
+
+      # 4. Run updater pipeline
+      - name: Run updater pipeline
+        id: pipeline
+        working-directory: live
+        run: |
+          set -euo pipefail
+
+          echo "======================================"
+          echo "       STARTING UPDATER PIPELINE"
+          echo "======================================"
+
+          echo ""
+          echo "[1/3] Running updater..."
+          node scripts/updater/index.js
+
+          echo ""
+          echo "[2/3] Running merge..."
+          node scripts/action/merge.js
+
+          echo ""
+          echo "[3/3] Running JSON conversion..."
+          node scripts/action/jsoncon.js
+
+          echo ""
+          echo "Checking playlist changes..."
+
+          if [[ -z "$(git status --porcelain playlist)" ]]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No playlist changes detected."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Playlist changes detected!"
+            git status --short playlist
+          fi
+
+          echo ""
+          echo "======================================"
+          echo "       PIPELINE COMPLETED"
+          echo "======================================"
+
+      # 5. Commit and push changes safely
+      - name: Commit changes safely
+        if: steps.pipeline.outputs.changed == 'true'
+        working-directory: live
+        run: |
+          set -euo pipefail
+
+          echo "======================================"
+          echo "       COMMITTING CHANGES"
+          echo "======================================"
+
+          git config user.name "senvora"
+          git config user.email "192395417+senvora@users.noreply.github.com"
+
+          git add playlist/
+
+          # Get actual changed filenames
+          CHANGED_FILES=$(git diff --cached --name-only)
+
+          if [[ -z "$CHANGED_FILES" ]]; then
+            echo "No staged changes to commit."
+            exit 0
+          fi
+
+          FILE_COUNT=$(printf '%s\n' "$CHANGED_FILES" | wc -l | tr -d ' ')
+
+          # Generate dynamic commit title
+          if [[ "$FILE_COUNT" -eq 1 ]]; then
+            FILE="$CHANGED_FILES"
+            BASENAME=$(basename "$FILE")
+
+            if [[ "$FILE" == playlist/token/*.json ]]; then
+              NAME="${BASENAME%.json}"
+              COMMIT_MESSAGE="Automated update of $NAME token"
+
+            elif [[ "$FILE" == *.m3u || "$FILE" == *.m3u8 ]]; then
+              NAME="${BASENAME%.*}"
+              COMMIT_MESSAGE="Automated update of $NAME playlist"
+
+            else
+              COMMIT_MESSAGE="Automated update of $BASENAME"
+            fi
+
+          else
+            COMMIT_MESSAGE="Automated update of Playlist/Json"
+          fi
+
+          # Generate commit description
+          COMMIT_BODY="Automated playlist/JSON maintenance.
+
+          Updated $FILE_COUNT files:
+          "
+
+          while IFS= read -r file; do
+            COMMIT_BODY+="- $file"$'\n'
+          done <<< "$CHANGED_FILES"
+
+          echo ""
+          echo "Files being committed:"
+          echo "$CHANGED_FILES"
+
+          echo ""
+          echo "Commit title: $COMMIT_MESSAGE"
+
+          echo ""
+          echo "Commit description:"
+          echo "$COMMIT_BODY"
+
+          # Create a single commit
+          git commit \
+            -m "$COMMIT_MESSAGE" \
+            -m "$COMMIT_BODY"
+
+          echo ""
+          echo "Pushing changes to main..."
+
+          # Retry push safely
+          for i in 1 2 3; do
+            echo ""
+            echo "Push attempt $i/3"
+
+            if git pull --rebase origin main && \
+               git push origin HEAD:main; then
+              echo "Successfully pushed changes!"
+              exit 0
+            fi
+
+            echo "Push attempt $i failed."
+
+            if [[ "$i" -lt 3 ]]; then
+              echo "Retrying in $((i * 2)) seconds..."
+              sleep $((i * 2))
+            fi
+          done
+
+          echo "::error::Push failed after 3 attempts"
+          exit 1
+
+      # 6. Final status
+      - name: Automation summary
+        if: always()
+        run: |
+          echo "======================================"
+          echo "          AUTOMATION SUMMARY"
+          echo "======================================"
+
+          echo "Pipeline status: ${{ steps.pipeline.outcome }}"
+          echo "Playlist changed: ${{ steps.pipeline.outputs.changed }}"
+          echo "Commit status: ${{ job.status }}"
+
+          echo "======================================"
